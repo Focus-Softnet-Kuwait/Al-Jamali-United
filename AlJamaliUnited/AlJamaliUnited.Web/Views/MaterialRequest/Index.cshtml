@@ -1,0 +1,762 @@
+﻿
+@{
+    ViewBag.Title = "Material Request Form";
+    Layout = "~/Views/Shared/_MaterialRequest.cshtml";
+
+
+    // Retrieve the warehouse items from ViewBag
+    List<AlJamaliUnited.Web.Models.Warehouse> warehouseItems = ViewBag.WarehouseItems;
+
+    // Retrieve the Unitslist from ViewBag
+    List<AlJamaliUnited.Web.Models.Units> unitsItems = ViewBag.UnitsItems;
+
+    // Set ViewBag variables
+    ViewBag.UnitsItems = unitsItems;
+}
+
+<style>
+    h2.underline {
+        text-decoration: underline;
+    }
+
+    #divLoader {
+        position: fixed;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(255, 255, 255,0.7);
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+    }
+
+    #loaderImage {
+        width: 30px;
+        height: 30px;
+    }
+
+    .button-container {
+        margin-bottom: 10px;
+    }
+
+    .custom-dropdown {
+        width: 100px; /* Set the width as per your design */
+        padding: 4px; /* Adjust padding for better spacing */
+        border: 1px solid #ccc; /* Add a border for a cleaner look */
+        border-radius: 4px; /* Apply border-radius for rounded corners */
+        background-color: #fff; /* Set background color */
+        box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1); /* Add a subtle box shadow */
+        font-size: 14px; /* Adjust font size */
+        color: #333; /* Set text color */
+    }
+    /* Add this style to reduce the width of the Unit and Packing dropdowns */
+    #dataTable .editable-unit-container .custom-dropdown {
+        width: 80px; /* Set the desired width for the dropdown */
+    }
+
+    #dataTable tbody tr:hover {
+        background-color: yellow;
+    }
+
+    #dataTable thead th {
+        background-color: #a6dcef; /* Light blue color */
+        color: #000; /* Text color */
+    }
+
+    #dataTable tbody tr.description-column {
+        /* Your styles for Description rows */
+    }
+    #dataTable tbody td {
+        height: 5px; /* Set your desired row height */
+        line-height: 5px; /* Set the line height for vertical centering */
+    }
+    #dataTable th:nth-child(1),
+    #dataTable td:nth-child(1) {
+        width: 75px; /* Set your desired fixed width for the "Description" column */
+        max-width: 75px; /* Optional: Set max-width if you want to limit the width */
+        white-space: nowrap; /* Optional: Prevent text wrapping */
+        overflow: hidden; /* Optional: Hide overflowing content */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+    }
+
+    #dataTable th:nth-child(2),
+    #dataTable td:nth-child(2) {
+        width: 300px;
+        max-width: auto;
+        white-space: nowrap;
+        overflow: hidden; /* Allow overflow */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+        position: relative; /* Position relative for absolute tooltip positioning */
+        height: auto;
+    }
+
+    #dataTable th:nth-child(3),
+    #dataTable td:nth-child(3) {
+        width: 65px; /* Set your desired fixed width for the "Description" column */
+        max-width: 65px; /* Optional: Set max-width if you want to limit the width */
+        white-space: nowrap; /* Optional: Prevent text wrapping */
+        overflow: hidden; /* Optional: Hide overflowing content */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+    }
+
+    #dataTable th:nth-child(4),
+    #dataTable td:nth-child(4) {
+        width: 65px; /* Set your desired fixed width for the "Description" column */
+        max-width: 65px; /* Optional: Set max-width if you want to limit the width */
+        white-space: nowrap; /* Optional: Prevent text wrapping */
+        overflow: hidden; /* Optional: Hide overflowing content */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+    }
+    #dataTable th:nth-child(5),         /*BaseUnit*/
+    #dataTable td:nth-child(5) {
+        width: 65px; /* Set your desired fixed width for the "Description" column */
+        max-width: 65px; /* Optional: Set max-width if you want to limit the width */
+        white-space: nowrap; /* Optional: Prevent text wrapping */
+        overflow: hidden; /* Optional: Hide overflowing content */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+    }
+
+    #dataTable th:nth-child(6), /*Unit*/
+    #dataTable td:nth-child(6) {
+        width: 75px; /* Set your desired fixed width for the "Description" column */
+        max-width: 75px; /* Optional: Set max-width if you want to limit the width */
+        white-space: nowrap; /* Optional: Prevent text wrapping */
+        overflow: hidden; /* Optional: Hide overflowing content */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+    }
+    #dataTable th:nth-child(7),
+    #dataTable td:nth-child(7) {
+        width: 55px; /* Set your desired fixed width for the "Packing" column */
+        max-width: 55px; /* Optional: Set max-width if you want to limit the width */
+        white-space: nowrap; /* Optional: Prevent text wrapping */
+        overflow: hidden; /* Optional: Hide overflowing content */
+        text-overflow: ellipsis; /* Optional: Show ellipsis for truncated text */
+    }
+    #dataTable th:nth-child(10),
+    #dataTable td:nth-child(10) {
+        min-width: 80px; /* Set a minimum width for the "Quantity" column */
+    }
+</style>
+<div class="container d-flex align-items-center">
+    <div class="button-container">
+        <button id="closeScreenBtn" class="btn btn-secondary">Close Screen</button>
+    </div>
+    <div class="flex-grow-1 text-center">
+        <h2 class="underline"> Material Request Form</h2>
+    </div>
+</div>
+<!-- Add this button where you want it to appear in your HTML markup -->
+
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+
+<div id="divLoader" style="display:none;"> <img src="~/Content/loader.gif" alt="Loader" /></div>
+<div class="container">
+    <div class="row text-center">
+
+        @using (Html.BeginForm("LoadData", "MaterialRequest", FormMethod.Post, new { @class = "form-inline" }))
+        {
+            <div class="form-group" style="display:none">
+                <label for="FromDate" class="mr-2">From:</label>
+                <input type="date" id="FromDate" name="FromDate" class="form-control" />
+
+            </div>
+            <div class="form-group ml-2">
+                <label for="ToDate" class="mr-2">Date:</label>
+                <input type="date" id="ToDate" name="ToDate" class="form-control" />
+            </div>
+            <div class="form-group ml-2">
+                @* Dropdown list example *@
+                <select id="DropdownList" class="custom-dropdown">
+                    @foreach (var warehouse in warehouseItems)
+                    {
+                        <option value="@warehouse.Id">@warehouse.Name</option>
+                    }
+                </select>
+
+                <select id="DropdownList" class="custom-dropdown" style="display:none;">
+                    @foreach (var units in unitsItems)
+                    {
+                        <option value="@units.Id">@units.Name</option>
+                    }
+                </select>
+
+            </div>
+            <div class="form-group ml-2">
+                <button id="BtnLoad" type="submit" class="btn btn-primary">Fetch</button>
+            </div>
+            <div class="form-group ml-2">
+                <button id="BtnSubmit" type="button" class="btn btn-success">Submit</button>
+            </div>
+
+
+        }
+
+    </div>
+</div>
+<br />
+
+<table id="dataTable" class="display cell-border hover" cellspacing="0" style="width:100%">
+
+    <thead>
+        <tr>
+            <th>MasterId</th>       @*0*@
+            <th>Item Code</th>      @*1*@
+            <th>Description</th>    @*2*@
+            <th>Sold</th>           @*3*@
+            <th>Stock</th>          @*4*@
+            <th>BaseUnit</th>       @*5*@
+            <th>Unit</th>           @*6*@
+            <th>Packing</th>        @*7*@
+            <th>CRT</th>            @*8*@
+            <th>PCS/Roll</th>       @*9*@
+            <th>Quantity</th>       @*10*@
+        </tr>
+    </thead>
+</table>
+@section Scripts{
+    <script>
+        var requestId = 1;
+        var checkDetailsArry = [];
+        let requestsProcessed = [];
+        var Result;
+        var CompanyId = 0;
+        var loginDetails = {};
+        var vNo = "";
+        var vType = "";
+        var validRows = 0;
+        var totalRows = 0;
+        var Compid = 0;
+        var sessionId = "";
+        var LoginId = 0;
+        var myrow = 0;
+        var currentRow = null;
+        var ssnId=""
+
+       // Your JavaScript code goes here
+        $(document).ready(function () {
+            debugger
+            getLoginDetails();
+
+            // Global variable to store unit values fetched from the server
+            var unitValues;
+            var unitsItems = @Html.Raw(Json.Encode(ViewBag.UnitsItems)); // Ensure ViewBag.UnitsItems is correctly populated in the controller
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("ToDate").setAttribute("max", today);
+            document.getElementById("ToDate").value = today;
+            var quantityColumnIndex; // Variable to store the column index for the "Quantity" column
+            var packingColumnIndex; // Variable to store the column index for the "Packing" column
+
+            var table = $('#dataTable').DataTable({
+                //"scrollY": "300px", // Set the desired height here
+                "paging": false,  // Disable pagination
+
+                //"lengthChange": false, // Disable page length change
+
+                //"dom": '<"row"<"col-md-6"l><"col-md-6"f>>Brtip',
+                //"dom": '<"row"<"col-md-6"1><"col-md-6"f">>Brt<"row"<"col-md-6"i><"col-md-6"p>>',
+
+                //"buttons": [{
+                //    extend: 'excel',
+                //    text: 'Export to Excel',
+                //    className: 'btn btn-primary',
+                //    exportOptions: {
+                //        columns: [0, 1, 2, 3, 4, 5, 7,10]
+                //    }
+                //}],
+
+                "serverSide": false,
+                "processing": true,
+                "ajax": {
+                    "url": "@Url.Action("LoadData", "MaterialRequest")",
+                    "type": "POST",
+                    "data": function (d) {
+                        // Additional parameters can be passed here if needed
+                        d.FromDate = $("#FromDate").val();
+                        d.ToDate = $("#ToDate").val();
+                        d.WarehouseId = $("#DropdownList").val(); // Add the selected warehouse ID
+                    }
+
+                },
+                "columns": [
+                    // Define your columns here
+                    { data: "Id"},
+                    { data: "ItemCode" },
+                    { data: "Description" },
+                    {
+                        data: "QtySold",
+
+                        width: '50px', // Set your desired width here
+                        render: function (data, type, row) {
+                            // Render the cell as an input for editing
+                            return '<div class="editable-unit-container">' +
+                                '<input type="text" class="editable-unit qtySold-input" style="margin-right: 8px;width:65px; text-align:center;" value="' + data + '" readonly>' +
+                                '</div>';
+                        }
+                    },
+                    {
+                        data: "StockQty",
+                        width: '50px', // Set your desired width here
+                        render: function (data, type, row) {
+                            // Render the cell as an input for editing
+                            return '<div class="editable-unit-container">' +
+                                '<input type="text" class="editable-unit stockQty-input" style="margin-right: 8px;width:65px; text-align:center;" value="' + data + '" readonly>' +
+                                '</div>';
+                        }
+                    },
+                    {
+                        data: 'BaseUnit',
+                        name: 'BaseUnit',
+                        //width: '50px', // Set your desired width here
+                        render: function (data, type, row) {
+                            // Render the cell as an input for editing
+                            return '<div class="editable-unit-container">' +
+                                '<input type="text" class="editable-unit baseUnit-input" style="margin-right: 8px;width: 65px;" value="' + data + '" data-original-value="' + data + '" readonly>'
+                            '</div>';
+                        }
+                    },
+                    {
+                        data: 'Unit',
+                        name: 'Unit',
+
+                        render: function (data, type, row) {
+                            // Check if row.Unit is defined and is an array
+                            if (row.Unit && Array.isArray(row.Unit)) {
+                                console.log('row.Unit:', row.Unit); // Add this line for debugging
+                                // Render the cell as a dropdown list with options from the "Unit" property
+                                var selectOptions = '';
+                                row.Unit.forEach(function (unit) {
+                                    console.log('unit:', unit); // Add this line for debugging
+                                    var selected = (data == unit.sName) ? 'selected' : ''; // Compare with iMasterId
+                                    //selectOptions += '<option value="' + unit.iMasterId + '" ' + selected + '>' + unit.sName + '</option>';
+                                    selectOptions += '<option value="' + unit.sName + '" ' + selected + '>' + unit.sName + '</option>';
+                                });
+
+                                return '<div class="editable-unit-container">' +
+                                    //'<select class="editable-unit unit-input custom-dropdown" data-original-value="' + data + '">' +
+                                    '<select class="editable-unit unit-input custom-dropdown">' +
+                                    selectOptions +
+                                    '</select>' +
+                                    '</div>';
+                            } else {
+                                // Handle the case where row.Unit is not defined or not an array
+                                return data; // Or any other fallback value or HTML
+                            }
+                        }
+                    },
+
+                    {
+                        data: 'Packing',
+                        name: 'Packing',
+                        width: '50px', // Set your desired width here
+                        render: function (data, type, row) {
+                                // Render the cell as an input for editing
+                                return '<div class="editable-unit-container">' +
+                                    '<input type="text" class="editable-unit packing-input" style="margin-right: 8px;width:65px; text-align:center;" value="' + data + '" readonly>' +
+                                    '</div>';
+                        }
+                    },
+                    {
+                        data: 'CRT',
+                        name: 'CRT',
+                        render: function (data, type, row) {
+                            // Render the cell as an input for editing
+                            return '<div class="editable-unit-container">' +
+                                '<input type="text" class="editable-unit crt-input" style="margin-right: 8px;width:65px;" value="' + data + '" data-original-value="' + data + '">'
+                            '</div>'
+                        }
+                    },
+                    {
+                        data: 'PCSRoll',
+                        name: 'PCS/Roll',
+                        render: function (data, type, row) {
+                            // Render the cell as an input for editing
+                            return '<div class="editable-unit-container">' +
+                                '<input type="text" class="editable-unit pcs-input" style="margin-right:8px; width:65px;" value="' + data + '" data-original-value="' + data + '">'
+                            '</div>'
+                        }
+                    },
+                    {
+                        data: 'Quantity',
+                        name: 'Quantity',
+                        render: function (data, type, row) {
+                            console.log('Quantity data:', data, ', type:', type);
+                            //Render the cell as an input for editing
+                            return '<div class="editable-unit-container">' +
+                                '<input type="text" class="editable-unit quantity-input" style="margin-right:8px; width:65px; text-align:center;" value="' + data + '" data-original-value="' + data + '">'
+                            '</div>'
+                        }
+
+                    }
+                ],
+                "initComplete": function () {
+                    console.log("unitsItems count before DataTable creation: " + unitsItems.length);
+                    // Store the column index for the "Quantity" and "Packing" columns after DataTable initialization
+                    quantityColumnIndex = table.column('Quantity:name').index();
+                    packingColumnIndex = table.column('Packing:name').index();
+
+                    // Fetch unit values for each item
+                    table.rows().every(function () {
+                        var rowData = this.data();
+                        var productId = rowData.Id; // Assuming Id is the name of the hidden field
+
+                        // Fetch unit values for the current product
+                        //fetchUnitValues(productId);
+                    });
+
+                },
+                "drawCallback": function (settings) {
+                    // Apply the row height styles after each draw
+                    $("#dataTable tbody td").css({
+                        "height": "20px",        // Set your desired row height
+                        "line-height": "20px"    // Set the line height for vertical centering
+                    });
+                },
+                "columnDefs": [
+                    {
+                        "targets": [0,8,9], // index of the column to hide (0-based index)
+                        "visible": false,
+                        "searchable": false,
+
+                    },
+                    {
+                        "targets": [10], // index of the "Quantity" column (0-based index)
+                        //"type": "num",    // treat the column as numeric for sorting
+                        "type": "num-fmt", // treat the column as numeric for sorting, considering formatting
+
+                    }
+
+                ],
+                "order": [[10, "desc"]]
+            });
+
+            // Function to check if any row has Quantity > 0
+            function hasQuantityGreaterThanZero() {
+                debugger
+                var hasQuantity = false;
+                table.rows({
+                    search: "applied"
+                }).every(function () {
+                   /* var quantityValue = parseFloat(this.data().Quantity) || 0;*/
+                    var rowData = this.data();
+                    console.log(rowData); // Add this line for debugging
+                    var quantityValue = parseFloat(rowData.Quantity) || 0;
+                    if (quantityValue > 0) {
+                        hasQuantity = true;
+                        return false; // Break the loop if a row with Quantity > 0 is found
+                    }
+                });
+                return hasQuantity;
+            }
+            // Initial check and update button state
+            updateSubmitButtonState();
+
+            // Add a change event listener for the DataTable
+            table.on('draw', function () {
+                debugger
+
+                // Update button state when the DataTable is redrawn (e.g., after filtering)
+                updateSubmitButtonState();
+
+                // Hide the loader if there are no rows in the table
+                if (table.rows().count() === 0) {
+                    $('#divLoader').hide();
+                }
+            });
+
+
+            // Optional: Reload the table when the form is submitted
+            $("#BtnLoad").on("click", function (e) {
+                debugger
+                $('#divLoader').show();
+                e.preventDefault();
+
+                // Clear the DataTable
+                table.clear().draw();
+                // Reload the table data
+                table.ajax.reload();
+
+            });
+            //$('#dataTable').on('change blur', '.pcs-input', function () {
+            $('#dataTable').on('change blur', '.quantity-input', function () {
+                debugger
+
+                var row = table.row($(this).closest('tr'));
+                var rowIndex = row.index();
+                // Log the rowData to the console to inspect its structure
+                console.log(row);
+
+                // Get the updated CRT value
+                /*var crtValue = $(this).val();*/
+                var crtValue = $(this).closest('tr').find('.crt-input').val();
+                // Get the corresponding Packing value from the Packing input in the same row
+                var packingValue = $(this).closest('tr').find('.packing-input').val();
+                // Update the Quantity column in the DataTable
+                var pcs = $(this).closest('tr').find('.pcs-input').val();
+
+                //row.data()['Quantity'] = calculateQuantity(packingValue, crtValue,pcs);
+                var quantity = $(this).closest('tr').find('.quantity-input').val();
+                //var quantity = calculateQuantity(packingValue, crtValue, pcs);
+                // Redraw only the updated cell
+                var quantityColumnIndex = table.column('Quantity:name').index();
+                 //var quantity = calculateQuantity(packingValue, crtValue);
+                table.cell({ row: row.index(), column: quantityColumnIndex }).data(quantity);
+
+                // Initial check and update button state
+                updateSubmitButtonState();
+
+            });
+            function calculateQuantity(packing, crt, pcs) {
+                debugger
+                // Perform your quantity calculation here
+                // For example, you can multiply Packing and CRT
+                return (packing * crt) + parseInt(pcs, 10);
+            }
+                // Add a click event handler for the "Submit" button
+            $("#BtnSubmit").on("click", function () {
+                debugger
+                getLoginDetails();
+                
+                // Get the entire DataTable data
+                var dataTableData = [];
+                var vDate = $("#ToDate").val();
+                var vWarehouseiD = $("#DropdownList").val();
+                //var vWarehouseiD = 2;
+                // Loop through DataTable rows and extract necessary properties
+                table.rows({ search: "applied" }).every(function (rowIdx, tableLoop, rowLoop) {
+                    var data = this.data();
+                    // Get the selected value from the "Unit" dropdown
+                    var selectedUnitValue = $(this.node()).find('.unit-input').val();
+                    // Access the input fields directly to get user-entered values
+                    var baseUnit = $(this.node()).find('.baseUnit-input').val();
+                    var packing = $(this.node()).find('.packing-input').val();
+                    var crt = $(this.node()).find('.crt-input').val();
+                    var pcsRoll = $(this.node()).find('.pcs-input').val();
+                    var masterId = data.Id;
+                    // Create an object with the required properties
+                    var rowData = {
+                        ItemCode: data.ItemCode,
+                        Description: data.Description,
+                        QtySold: data.QtySold,
+                        StockQty: data.StockQty,
+                        BaseUnit: baseUnit,
+                        Unit: [{ sName: selectedUnitValue}], // Include only the selected value,
+                        Packing: data.Packing,
+                        CRT: crt,
+                        PCSRoll: pcsRoll,
+                        Quantity: data.Quantity,
+                        Id: masterId
+                    };
+                    // Add the row data to dataTableData only if Quantity > 0
+                    if (rowData.Quantity > 0) {
+                        debugger
+                        // Get the previous quantity from the server
+                        //const previousQuantityChanged =  getPreviousQuantity(rowData.Id, rowData.Quantity);
+                        var result =  getPreviousQuantity(rowData.Id, rowData.Quantity);
+                        if (result.QuantityChanged != rowData.Quantity) {
+                            // Assuming getPreviousQuantity is successful, handle the result here
+                            console.log(result);
+                            dataTableData.push(rowData);
+                            console.log("Row Selected:", rowData);
+                        }
+                        //dataTableData.push(rowData);
+                       
+                    }
+                    //dataTableData.push(rowData);
+                });
+                // Split the data into chunks (e.g., 50 rows per chunk)
+                    var chunkSize = 99;
+                    debugger
+                for (var i = 0; i < dataTableData.length; i += chunkSize) {
+                    $('#divLoader').show();
+                    var chunk = dataTableData.slice(i, i + chunkSize);
+                    // Determine if this is the last batch
+                    var isLastBatch = (i + chunkSize >= dataTableData.length);
+
+                    // Use AJAX to send the DataTable data to the controller
+                    $.ajax({
+                        url: "@Url.Action("PostData", "MaterialRequest")",
+                        type: "POST",
+                        contentType: "application/json",
+                        //data: JSON.stringify(chunk),
+                        data: JSON.stringify({ dataTableData: chunk, isLastBatch: isLastBatch, toDate: vDate, warehouseId: vWarehouseiD, Compid: CompanyId, ssnId:sessionId}),
+                        success: function (response) {
+                            debugger;
+                            $('#divLoader').hide();
+                            // Clear DataTable on success
+
+                            table.clear().draw();
+                            // Display a success message in a popup
+                            //Swal.fire('Excellent', 'Seected rows updated and saved successfully', 'success');
+                            Swal.fire({
+                                title: 'Excellent',
+                                text: 'Selected rows updated and saved succesfully.',
+                                icon: 'success',
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // User clicked "OK", trigger the BtnLoad click event
+                                    $("#BtnLoad").click();
+                                }
+                            })
+                            //// Reload the form after the user clicks "OK" on the Swal popup
+                            ////location.reload();
+                            //// Optional: Reload the table when the form is submitted
+                            //$("#BtnLoad").on("click", function (e) {
+                            //    e.preventDefault();
+
+                            //    // Clear the DataTable
+                            //    table.clear().draw();
+                            //    // Reload the table data
+                            //    table.ajax.reload();
+                            //});
+                            // Handle the response from the controller if needed
+
+                            console.log(response);
+                        },
+                        error: function (error) {
+                            $('#divLoader').hide();
+                            // Handle the error if the request fails
+                            //alert("Error occurred while saving selected rows. Please try again.");
+
+                            console.error(error);
+                            //alert("Error occurred while saving selected rows. Please try again.");
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: 'Something went wrong!',
+                                //footer: '<a href="">Why do I have this issue?</a>'
+                            })
+                        }
+                    });
+                }
+
+            });
+
+            // Function to update the state of the "Submit" button
+            function updateSubmitButtonState() {
+                debugger
+                var isButtonActive = hasQuantityGreaterThanZero();
+                $("#BtnSubmit").prop("disabled", !isButtonActive);
+                // Hide the loader if the button is active (i.e., there is data to submit)
+                if (isButtonActive) {
+                    $('#divLoader').hide();
+                }
+            }
+            // Event listener for the "Close Screen" button
+            $('#closeScreenBtn').click(function () {
+                debugger
+                Focus8WAPI.gotoHomePage();
+                //Focus8WAPI.continueModule(Focus8WAPI.ENUMS.MODULE_TYPE.TRANSACTION, true);
+
+            });
+            // Add an event listener for the change event on the "Unit" column
+            $('#dataTable').on('change', '.unit-input', function () {
+                debugger
+                // Get the selected unit value
+                var selectedUnit = $(this).val();
+
+                // Find the corresponding row and update the "Packing" column based on the selected unit
+                var row = table.row($(this).closest('tr'));
+
+                // Assuming you have a way to get the productId associated with this row
+                var productId = row.data().Id; // Replace "Id" with the actual property name
+                // Update the "Packing" column with the xFactor value of the selected unit
+                updatePackingColumn(row, selectedUnit);
+
+                // Redraw the table to reflect the changes
+                table.draw();
+            });
+            // Function to update the "Packing" column with the xFactor value of the selected unit
+            function updatePackingColumn(row, selectedUnit) {
+                debugger
+                // Find the selected unit information based on the sName
+                var selectedUnitInfo = row.data().Unit.find(function (unit) {
+                    return unit.sName === selectedUnit;
+                });
+
+                // If selected unit information is found, update the corresponding xFactor value in the "Packing" column
+                if (selectedUnitInfo) {
+                    var packingCell = table.cell({ row: row.index(), column: packingColumnIndex });
+                    packingCell.data(selectedUnitInfo.xFactor);
+                }
+            }
+
+
+
+        });
+        function getLoginDetails() {
+            debugger
+            Focus8WAPI.getGlobalValue("getLoginDetailsCallback", "", 1);
+        }
+        function getLoginDetailsCallback(response) {
+            debugger
+            try {
+                console.log("response", response);
+                CompanyId = response.data.CompanyId;
+                console.log("Company ID: "+ CompanyId)
+                sessionId = response.data.SessionId;
+                LoginId = response.data.LoginId;
+            }
+            catch (e) {
+                console.log(e)
+            }
+        }
+        function getPreviousQuantityOld(itemId, currentQuantity)
+        {
+            debugger
+            try
+            {
+                var vDate = $("#ToDate").val();
+                $.ajax({
+                    url: "@Url.Action("CheckPreviousQuantity", "MaterialRequest")",
+                    type: "POST",  // Corrected the HTTP method to POST
+                    contentType: "application/json",
+                    data: JSON.stringify({ masterId: itemId, toDate: vDate }),
+                    success: function (response) {
+                        debugger;
+                        if (response && response.QuantityChanged == currentQuantity) {
+                            //callback(response.QuantityChanged);
+                            response.QuantityChanged;
+                        } else {
+                            console.error('Unexpected server response:', response);
+                            callback(false);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error during AJAX request:', error);
+                        callback(false);
+                    }
+                });
+            } catch (error) {
+                console.error('Error during fetch:', error);
+                callback(false);
+            }
+        }
+        function getPreviousQuantity(itemId, Quantity) {
+            debugger
+        // Assuming vDate is defined elsewhere in your code
+            var vDate = $("#ToDate").val();
+            var result;
+                // AJAX request
+                $.ajax({
+                    url: "@Url.Action("CheckPreviousQuantity", "MaterialRequest")",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ masterId: itemId, toDate: vDate }),
+                    async: false, // Make the request synchronous
+                    success: function (data) {
+                    debugger
+                        // Call the success callback with the retrieved data
+                        result = data;
+                    },
+                    error: function (error) {
+                        // Call the error callback with the error object
+                        console.error("Error: ", error);
+                    }
+                });
+            return result;
+}
+
+    </script>
+}
